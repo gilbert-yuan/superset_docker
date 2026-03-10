@@ -1,0 +1,100 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: superset_redis
+    restart: unless-stopped
+    volumes:
+      - ./data/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  db:
+    image: postgres:15-alpine
+    container_name: superset_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: superset
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  superset:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: superset_app
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/pythonpath
+      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY:-CHANGE_ME_TO_A_RANDOM_STRING}
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./data/superset:/app/superset_home
+      - ./data/uploads:/app/uploads
+      - ./superset_config.py:/app/pythonpath/superset_config.py
+      - ./translations/zh/LC_MESSAGES:/app/superset/translations/zh/LC_MESSAGES
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["/app/docker/entrypoints/run-server.sh"]
+    
+  superset-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: superset_worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/pythonpath
+      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY:-CHANGE_ME_TO_A_RANDOM_STRING}
+    volumes:
+      - ./data/superset:/app/superset_home
+      - ./data/uploads:/app/uploads
+      - ./superset_config.py:/app/pythonpath/superset_config.py
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["/app/docker/entrypoints/worker.sh"]
+
+  superset-worker-beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: superset_worker_beat
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/pythonpath
+      - SUPERSET_SECRET_KEY=${SUPERSET_SECRET_KEY:-CHANGE_ME_TO_A_RANDOM_STRING}
+    volumes:
+      - ./data/superset:/app/superset_home
+      - ./data/uploads:/app/uploads
+      - ./superset_config.py:/app/pythonpath/superset_config.py
+
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    command: ["/app/docker/entrypoints/beat.sh"]

@@ -1,0 +1,5 @@
+.env
+volumes/
+assets/
+*.log
+__pycache__/
