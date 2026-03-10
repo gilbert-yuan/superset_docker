@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Starting Superset beat scheduler..."
+echo "Starting Superset worker..."
 
 # 等待数据库就绪
 echo "Waiting for database..."
@@ -17,8 +17,10 @@ while ! nc -z redis 6379; do
 done
 echo "Redis is ready!"
 
-# 启动 Celery Beat
-echo "Starting Celery beat scheduler..."
-exec celery --app=superset.tasks.celery_app:app beat \
+# 启动 Celery Worker
+echo "Starting Celery worker..."
+exec celery --app=superset.tasks.celery_app:app worker \
+    --pool=prefork \
+    --concurrency=4 \
     --loglevel=INFO \
-    --schedule=/app/superset_home/celerybeat-schedule
+    --queues=queries,sql_lab,email_reports,reports
