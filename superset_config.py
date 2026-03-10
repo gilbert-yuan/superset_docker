@@ -68,14 +68,14 @@ EXPLORE_FORM_DATA_CACHE_CONFIG = {
     "CACHE_KEY_PREFIX": "superset_explore_",
     "CACHE_REDIS_URL": f"{REDIS_BASE_URL}/{REDIS_EXPLORE_DB}",
 }
-
 # Celery 配置
 class CeleryConfig:
     broker_url = f"{REDIS_BASE_URL}/{REDIS_CELERY_DB}"
-    imports = ("superset.sql_lab", "superset.scheduled_queries")
     result_backend = f"{REDIS_BASE_URL}/{REDIS_RESULTS_DB}"
+
     worker_prefetch_multiplier = 10
     task_acks_late = True
+
     task_annotations = {
         "sql_lab.get_sql_results": {
             "rate_limit": "100/s",
@@ -86,11 +86,8 @@ class CeleryConfig:
             "soft_time_limit": 600,
         },
     }
+
     beat_schedule = {
-        "email_reports.schedule_hourly": {
-            "task": "email_reports.schedule_hourly",
-            "schedule": timedelta(hours=1),
-        },
         "reports.scheduler": {
             "task": "reports.scheduler",
             "schedule": timedelta(seconds=60),
@@ -102,7 +99,6 @@ class CeleryConfig:
     }
 
 CELERY_CONFIG = CeleryConfig
-
 # 密钥配置（必须修改）
 SECRET_KEY = os.getenv("SUPERSET_SECRET_KEY", "CHANGE_ME_TO_A_RANDOM_STRING")
 

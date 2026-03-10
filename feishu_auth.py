@@ -10,7 +10,7 @@ class CustomSsoSecurityManager(SupersetSecurityManager):
             logging.debug("user_data: {0}".format(me))
             return {
                 "name": me["name"],
-                "email": me["email"],
+                "email": me["user_id"] + "@kinlim.bi.com",
                 "id": me["user_id"],
                 "username": me["en_name"],
                 "first_name": me["en_name"],
